@@ -1,50 +1,58 @@
 # Bangumi Anime Reception Analyst
 
+## Live demo
+
+Deployed website: `https://bangumi-data-analyst-agent-407136000438.us-central1.run.app/`
+
 ## Project description
 
-This project compares two Bangumi anime seasonal cohorts using runtime API retrieval, performs exploratory analysis, generates artifacts, and exposes both a deterministic analysis path and an agent-backed analysis path through a FastAPI app with a minimal browser demo.
+This project is a multi-agent data analyst system for comparing two anime seasonal cohorts from **Bangumi.tv**, a Chinese community platform where users track, rate, and discuss anime and related media.
 
-The workflow is intentionally scoped around a concrete analyst loop:
+In this project, Bangumi is used as a **real runtime external data source**, not as a static dataset and not as a generic chatbot knowledge base.
+
+The system is intentionally scoped around a concrete analyst workflow:
 
 **Collect → Explore → Hypothesize**
 
-- **Collect**: fetch two seasonal anime cohorts from the official Bangumi API at runtime
-- **Explore**: compute cohort-level and title-level comparison signals
+- **Collect**: retrieve two anime seasonal cohorts from the official Bangumi API at runtime
+- **Explore**: compute cohort-level and title-level comparison signals over the retrieved data
 - **Hypothesize**: produce a narrow evidence-backed seasonal interpretation
 
-## What is Bangumi.tv?
+This directly matches the Project 2 requirement to implement the first three steps of a real data analyst workflow with real-world data.
 
-Bangumi.tv is a Chinese community platform used to track and rate anime, manga, games, books, and related media. In this project, Bangumi is used as the runtime external data source because:
+## Why Bangumi
 
-- it is a real community-driven rating source rather than a toy dataset
-- it has an official API, so the project can do live retrieval instead of static CSV-only analysis
-- it fits the seasonal anime comparison use case naturally
-- it is also a platform I already use, which made the project direction practical and interpretable
+Bangumi is a good fit for this project because:
 
-This project uses Bangumi.tv specifically as a runtime anime cohort source, not as a generic chatbot knowledge base.
+- it is a real community-driven rating platform
+- it has an official API for runtime retrieval
+- it naturally supports anime seasonal cohort analysis
+- it provides enough scale and variety to count as a non-trivial external dataset
 
-## System architecture
+This project uses Bangumi specifically as a runtime source for **anime reception analysis**. It is not a generic anime QA bot or recommendation system.
+
+## System overview
 
 The system has three layers:
 
 1. **Data retrieval layer**
-   - official Bangumi API client
-   - seasonal cohort retrieval at runtime
+   - Bangumi API client
+   - runtime seasonal cohort retrieval
 
 2. **Analysis layer**
-   - deterministic season gap analysis
+   - deterministic season-gap analysis
    - cohort summaries
    - title-level gap signals
    - artifact generation
 
 3. **Agent layer**
-   - orchestrated multi-agent workflow built on top of the existing analysis flow
+   - orchestrator
    - retrieval specialist
    - EDA specialist
    - hypothesis specialist
    - critic specialist
 
-A minimal frontend workbench is mounted inside the FastAPI app for local demo and submission use.
+A minimal frontend workbench is mounted inside the FastAPI app for interactive use.
 
 ## Deterministic path vs agent-backed path
 
@@ -56,11 +64,11 @@ Endpoint:
 
 Purpose:
 
-- fetch two seasonal cohorts
-- run the existing season gap analysis
-- return structured summaries and artifacts
+- retrieve two seasonal cohorts
+- run the deterministic analysis pipeline
+- return structured comparison results and artifacts
 
-This is the stable baseline path and the best first demo step.
+This is the stable baseline path.
 
 ### Agent-backed path
 
@@ -71,23 +79,23 @@ Endpoint:
 Purpose:
 
 - orchestrate specialist agents over the same seasonal comparison task
-- preserve the existing retrieval/analysis logic
+- reuse the existing retrieval and analysis logic
 - generate a final report
 - run a critic check on the hypothesis
 
-This path demonstrates the multi-agent layer rather than replacing the deterministic analytics core.
+This path demonstrates the multi-agent layer without replacing the deterministic analytics core.
 
 ## Agent roles
 
-The current agent workflow includes these roles:
+The current multi-agent workflow includes:
 
-- **Orchestrator**: coordinates the analysis workflow
+- **Orchestrator**: controls the workflow and combines specialist outputs
 - **Retrieval specialist**: performs runtime Bangumi retrieval only
-- **EDA specialist**: consumes prefetched rows and produces descriptive findings only
-- **Hypothesis specialist**: proposes one narrow evidence-backed hypothesis
+- **EDA specialist**: analyzes prefetched rows only
+- **Hypothesis specialist**: produces one narrow evidence-backed hypothesis
 - **Critic specialist**: checks whether the hypothesis is supported by the evidence
 
-This separation keeps the retrieval / EDA / hypothesis / critique responsibilities explicit.
+This separation is intentional: different agents have different prompts and responsibilities, rather than one single persona pretending to be multiple roles.
 
 ## Runtime data source and artifacts
 
@@ -95,7 +103,7 @@ This separation keeps the retrieval / EDA / hypothesis / critique responsibiliti
 
 - official Bangumi API
 - anime seasonal cohorts
-- examples used in demo: `2025 spring` vs `2025 summer`
+- recommended comparison pair: `2025 spring` vs `2025 summer`
 
 ### Artifacts generated per run
 
@@ -107,132 +115,142 @@ Artifacts are written under:
 
 - `outputs/runs/<timestamp_or_slug>/...`
 
-They are also browsable locally through:
+They are also browsable through:
 
 - `/outputs/...`
 
-## Local setup (Windows 11 PowerShell)
+## Implemented concepts checklist
 
-### 1. Enter the project directory
+### Required concepts
 
-```powershell
-cd .\bangumi_scaffold
-```
+- **Frontend**
+  - `frontend/templates/index.html`
+  - `frontend/static/app.js`
+  - `frontend/static/styles.css`
+  - `app/main.py`
 
-### 2. Sync dependencies
+- **Agent framework**
+  - `app/agents/service.py`
+
+- **Tool calling**
+  - `app/agents/tools.py`
+
+- **Non-trivial dataset**
+  - `app/bangumi/client.py`
+
+- **Multi-agent pattern**
+  - `app/agents/service.py`
+  - `app/agents/prompts.py`
+  - `app/agents/backend.py`
+
+- **Deployed application**
+  - Cloud Run deployment
+  - `Dockerfile`
+
+- **README**
+  - `README.md`
+
+### Grab-Bag concepts
+
+- **Artifacts**
+  - `app/artifacts/files.py`
+  - `app/artifacts/plotting.py`
+
+- **Structured output**
+  - `app/schemas.py`
+  - `app/agents/models.py`
+
+- **Data visualization**
+  - `app/artifacts/plotting.py`
+  - frontend preview in `frontend/static/app.js`
+
+## How the three project steps are implemented
+
+### Step 1: Collect
+
+The system retrieves real Bangumi data at runtime from the official API. This is implemented in:
+
+- `app/bangumi/client.py`
+- `app/api/routes_analysis.py`
+- `app/api/routes_agents.py`
+
+### Step 2: Explore and Analyze (EDA)
+
+The system computes over the collected cohort data rather than jumping directly to an answer. It performs aggregation, comparison, and gap analysis, and writes artifacts. This is implemented in:
+
+- `app/analysis/season_gap.py`
+- `app/artifacts/files.py`
+- `app/artifacts/plotting.py`
+
+### Step 3: Hypothesize
+
+The system forms a narrow hypothesis from the analysis results and communicates supporting evidence.
+
+- deterministic hypothesis construction:
+  - `app/analysis/season_gap.py`
+- agent hypothesis and critique:
+  - `app/agents/service.py`
+  - `app/agents/prompts.py`
+
+## Local run
+
+From the project root:
 
 ```powershell
 uv sync
-```
-
-### 3. Create `.env` if needed
-
-```powershell
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+Copy-Item .env.example .env
 notepad .env
-```
-
-### 4. Minimum `.env` values
-
-For deterministic mode:
-
-- `BANGUMI_TOKEN`
-- `BANGUMI_USER_AGENT`
-
-For agent mode, also make sure these are valid in your environment:
-
-- `AGENT_MODEL`
-- `VERTEX_PROJECT`
-- `VERTEX_LOCATION`
-
-If agent mode uses Vertex, also ensure local Google auth is configured, for example:
-
-```powershell
-gcloud auth application-default login
-```
-
-## How to run backend
-
-```powershell
 uv run uvicorn app.main:app --reload
 ```
 
-## How to open frontend
-
-Open this in the browser:
+Then open:
 
 ```text
 http://127.0.0.1:8000/
 ```
 
-## How to demo deterministic mode
+## How to use the deployed site
 
-Recommended first run:
+Open the live site:
 
-- Season A: `2025` + `spring`
-- Season B: `2025` + `summer`
-- Mode: `Deterministic`
+- `https://bangumi-data-analyst-agent-407136000438.us-central1.run.app/`
 
-Expected UI outputs:
+Recommended flow:
 
-- **Summary / Comparison**
-- **Hypothesis**
-- **Artifacts**
+1. Use:
+   - Season A: `2025 spring`
+   - Season B: `2025 summer`
+2. Run **Agent** mode first if you want to highlight the multi-agent workflow
+3. Run **Deterministic** mode if you want to show the stable baseline
+
+### In Deterministic mode, check:
+
+- `Summary / Comparison`
+- `Hypothesis`
+- `Artifacts`
 - scatter plot preview
 
-PowerShell API check:
+### In Agent mode, check:
 
-```powershell
-$body = @{
-  season_a = @{ year = 2025; season = "spring" }
-  season_b = @{ year = 2025; season = "summer" }
-  page_limit = 4
-  per_page = 25
-  top_n = 5
-  min_rating_total = 30
-} | ConvertTo-Json -Depth 5
+- `final_report`
+- `critic_verdict`
+- `critic_feedback`
+- raw orchestrator output in a secondary collapsible section
+- artifacts and plot preview
 
-Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://127.0.0.1:8000/api/v1/analysis/season-gap" `
-  -ContentType "application/json" `
-  -Body $body | ConvertTo-Json -Depth 8
-```
+## API endpoints
 
-## How to demo agent mode
+### Deterministic analysis
 
-After deterministic mode is confirmed, switch:
+- `POST /api/v1/analysis/season-gap`
 
-- Mode: `Agent`
+### Agent-backed analysis
 
-Expected UI outputs:
+- `POST /api/v1/agent/season-gap`
 
-- **Summary / Comparison**: main display now prioritizes `final_report`
-- **Hypothesis**
-- **Critic**
-  - verdict badge
-  - critic feedback
-- **Raw orchestrator output** in a secondary collapsible section
-- **Artifacts**
+### Health check
 
-PowerShell API check:
-
-```powershell
-$body = @{
-  season_a = @{ year = 2025; season = "spring" }
-  season_b = @{ year = 2025; season = "summer" }
-  page_limit = 4
-  per_page = 25
-  top_n = 5
-  min_rating_total = 30
-} | ConvertTo-Json -Depth 5
-
-Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://127.0.0.1:8000/api/v1/agent/season-gap" `
-  -ContentType "application/json" `
-  -Body $body | ConvertTo-Json -Depth 8
-```
+- `GET /healthz`
 
 ## Project structure
 
@@ -261,44 +279,3 @@ tests/
 outputs/
   runtime-generated artifacts
 ```
-
-## Mapping from course requirements to code locations
-
-### Runtime external data source
-
-- `app/bangumi/client.py`
-- `app/api/routes_analysis.py`
-- `app/api/routes_agents.py`
-
-### Real exploratory analysis
-
-- `app/analysis/season_gap.py`
-- `app/artifacts/plotting.py`
-- `app/artifacts/files.py`
-
-### Evidence-backed hypothesis generation
-
-- deterministic hypothesis construction: `app/analysis/season_gap.py`
-- agent hypothesis + critique: `app/agents/service.py`, `app/agents/prompts.py`
-
-### Multi-agent structure
-
-- `app/agents/service.py`
-- `app/agents/prompts.py`
-- `app/agents/tools.py`
-- `app/agents/models.py`
-- `app/agents/backend.py`
-
-### Web app / deployment-ready structure
-
-- app entrypoint: `app/main.py`
-- frontend demo: `frontend/templates/index.html`, `frontend/static/app.js`, `frontend/static/styles.css`
-- local artifact serving: `app/main.py`
-- containerization stub: `Dockerfile`
-
-## Notes
-
-- `outputs/` is created safely at startup if it does not already exist.
-- `/static` serves frontend assets.
-- `/outputs` serves generated local artifacts.
-- the frontend is intentionally a small analysis workbench rather than a general chat UI.
