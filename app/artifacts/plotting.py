@@ -7,20 +7,24 @@ import pandas as pd
 
 def _configure_cjk_font_fallback() -> None:
     preferred_fonts = [
+        "Noto Sans CJK SC",
+        "Noto Sans CJK JP",
         "Microsoft YaHei",
         "SimHei",
-        "Noto Sans CJK SC",
         "Microsoft JhengHei",
         "Yu Gothic",
         "MS Gothic",
         "Meiryo",
-        "Noto Sans CJK JP",
     ]
     available_fonts = {font.name for font in fm.fontManager.ttflist}
 
     chosen_font = next((font for font in preferred_fonts if font in available_fonts), None)
+
+    plt.rcParams["font.family"] = "sans-serif"
     if chosen_font is not None:
         plt.rcParams["font.sans-serif"] = [chosen_font, "DejaVu Sans", "sans-serif"]
+    else:
+        plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "sans-serif"]
 
     plt.rcParams["axes.unicode_minus"] = False
 
@@ -44,6 +48,7 @@ def save_gap_scatter_plot(df: pd.DataFrame, path: Path, annotate_n: int = 5) -> 
         label = row["name"]
         if pd.notna(row.get("name_cn")) and row["name_cn"]:
             label = row["name_cn"]
+
         ax.annotate(
             label,
             (row["popularity_log10"], row["score"]),
