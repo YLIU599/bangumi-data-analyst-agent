@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bangumi Analyst</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Bangumi Seasonal Comparison</h1>
+
+    <div class="panel">
+        <h3>Input</h3>
+
+        <label for="yearA">Season A:</label>
+        <input id="yearA" type="number" placeholder="2025" value="2025">
+        <select id="seasonA">
+            <option value="winter">winter (1)</option>
+            <option value="spring" selected>spring (4)</option>
+            <option value="summer">summer (7)</option>
+            <option value="fall">fall (10)</option>
+        </select>
+
+        <label for="yearB">Season B:</label>
+        <input id="yearB" type="number" placeholder="2025" value="2025">
+        <select id="seasonB">
+            <option value="winter">winter (1)</option>
+            <option value="spring">spring (4)</option>
+            <option value="summer" selected>summer (7)</option>
+            <option value="fall">fall (10)</option>
+        </select>
+
+        <label for="mode">Mode:</label>
+        <select id="mode">
+            <option value="deterministic">Deterministic</option>
+            <option value="agent">Agent</option>
+        </select>
+
+        <button id="runButton" onclick="runAnalysis()">Run</button>
+    </div>
+
+    <div class="panel">
+        <h3>Output</h3>
+
+        <section>
+            <h4>Summary / Comparison</h4>
+            <pre id="summary">No result yet.</pre>
+
+            <details id="orchestratorDetails" class="secondary-block" hidden>
+                <summary>Raw orchestrator output</summary>
+                <pre id="orchestratorOutput">N/A</pre>
+            </details>
+        </section>
+
+        <section>
+            <h4>Hypothesis</h4>
+            <pre id="hypothesis">N/A</pre>
+        </section>
+
+        <section>
+            <h4>Critic</h4>
+            <div id="criticVerdict" class="critic-verdict muted">N/A</div>
+            <pre id="critic">N/A</pre>
+        </section>
+
+        <section>
+            <h4>Artifacts</h4>
+            <div id="artifacts"></div>
+        </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
