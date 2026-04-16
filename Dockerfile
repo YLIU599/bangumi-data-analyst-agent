@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY app ./app
+COPY frontend ./frontend
 COPY scripts ./scripts
 
 RUN pip install --no-cache-dir .
