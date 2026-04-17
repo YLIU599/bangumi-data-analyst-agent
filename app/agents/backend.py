@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from app.analysis.season_gap import (
+    _safe_parse_date,
     normalize_subject,
     run_season_gap_analysis_from_prefetched_rows,
-    season_to_start_month,
+    season_to_date_bounds,
+    season_to_month_windows,
 )
 from app.bangumi.client import BangumiClient
 from app.core.config import Settings
@@ -47,22 +49,36 @@ class AgentWorkflowBackend:
         async with BangumiClient(self.settings) as client:
             snapshots = []
             for season_ref in season_refs:
-                raw_items = await client.fetch_season_subjects(
-                    year=season_ref.year,
-                    month=season_to_start_month(season_ref),
-                    page_limit=page_limit,
-                    per_page=per_page,
-                )
+                start_date, end_date = season_to_date_bounds(season_ref)
+                rows_by_subject: dict[int, dict[str, Any]] = {}
 
-                rows: list[dict[str, Any]] = []
-                for item in raw_items:
-                    normalized = normalize_subject(item, season_ref.label)
-                    if normalized is None:
-                        continue
-                    if normalized["rating_total"] < min_rating_total:
-                        continue
-                    rows.append(normalized)
+                for browse_year, browse_month in season_to_month_windows(season_ref):
+                    raw_items = await client.fetch_season_subjects(
+                        year=browse_year,
+                        month=browse_month,
+                        page_limit=page_limit,
+                        per_page=per_page,
+                    )
 
+                    for item in raw_items:
+                        normalized = normalize_subject(item, season_ref.label)
+                        if normalized is None:
+                            continue
+                        if normalized["rating_total"] < min_rating_total:
+                            continue
+
+                        parsed_air_date = _safe_parse_date(normalized["air_date"])
+                        if parsed_air_date is None:
+                            continue
+                        if not (start_date <= parsed_air_date < end_date):
+                            continue
+
+                        subject_id = int(normalized["subject_id"])
+                        existing = rows_by_subject.get(subject_id)
+                        if existing is None or int(normalized["rating_total"]) > int(existing["rating_total"]):
+                            rows_by_subject[subject_id] = normalized
+
+                rows = list(rows_by_subject.values())
                 self.prefetched_rows_by_season[season_ref.label] = rows
 
                 by_rating = sorted(rows, key=lambda row: row["rating_total"], reverse=True)[:5]

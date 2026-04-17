@@ -29,6 +29,7 @@ class GapRecord(BaseModel):
     subject_id: int
     name: str
     name_cn: str | None = None
+    image_url: str | None = None
     season_label: str
     air_date: str | None = None
     score: float
@@ -68,3 +69,18 @@ class SeasonGapAnalysisResponse(BaseModel):
     cohorts: list[CohortSummary]
     comparison: ComparisonSummary
     artifacts: ArtifactPaths
+
+
+class BangumiChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=1000)
+    current_request: SeasonGapAnalysisRequest | None = None
+
+
+class BangumiChatResponse(BaseModel):
+    mode: Literal["chat"] = "chat"
+    question: str
+    answer: str
+    pair_used: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    suggested_titles: list[GapRecord] = Field(default_factory=list)
+    out_of_scope: bool = False

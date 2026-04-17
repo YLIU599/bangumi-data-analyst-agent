@@ -7,67 +7,246 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <h1>Bangumi Seasonal Comparison</h1>
+    <main class="page-shell">
+        <section class="hero-panel glass-panel">
+            <p class="eyebrow">Project 2 · Bangumi DA Agent</p>
+            <h1>Bangumi Anime Reception Analyst</h1>
+            <p class="hero-copy">
+                Compare Bangumi anime seasonal cohorts with live API retrieval, structured analysis,
+                an agent-backed report, a critic check, and a topic-limited Bangumi DA chat assistant.
+            </p>
+            <p class="hero-note"><em>Bangumi is a Chinese anime rating and community website.</em></p>
 
-    <div class="panel">
-        <h3>Input</h3>
-
-        <label for="yearA">Season A:</label>
-        <input id="yearA" type="number" placeholder="2025" value="2025">
-        <select id="seasonA">
-            <option value="winter">winter (1)</option>
-            <option value="spring" selected>spring (4)</option>
-            <option value="summer">summer (7)</option>
-            <option value="fall">fall (10)</option>
-        </select>
-
-        <label for="yearB">Season B:</label>
-        <input id="yearB" type="number" placeholder="2025" value="2025">
-        <select id="seasonB">
-            <option value="winter">winter (1)</option>
-            <option value="spring">spring (4)</option>
-            <option value="summer" selected>summer (7)</option>
-            <option value="fall">fall (10)</option>
-        </select>
-
-        <label for="mode">Mode:</label>
-        <select id="mode">
-            <option value="deterministic">Deterministic</option>
-            <option value="agent" selected>Agent</option>
-        </select>
-
-        <button id="runButton" onclick="runAnalysis()">Run</button>
-    </div>
-
-    <div class="panel">
-        <h3>Output</h3>
-
-        <section>
-            <h4>Summary / Comparison</h4>
-            <pre id="summary">No result yet.</pre>
-
-            <details id="orchestratorDetails" class="secondary-block" hidden>
-                <summary>Raw orchestrator output</summary>
-                <pre id="orchestratorOutput">N/A</pre>
-            </details>
+            <div class="chip-row">
+                <span class="chip">Live Bangumi API</span>
+                <span class="chip">EDA-style comparison</span>
+                <span class="chip">Agent report</span>
+                <span class="chip">Critic verdict</span>
+                <span class="chip">Follow-up Q&A</span>
+                <span class="chip">Artifact preview</span>
+            </div>
         </section>
 
-        <section>
-            <h4>Hypothesis</h4>
-            <pre id="hypothesis">N/A</pre>
+        <section class="glass-panel control-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Run seasonal analysis</h2>
+                    <p class="panel-subtitle">
+                        Choose two seasons, then run a quick baseline or a richer agent-backed analysis.
+                    </p>
+                </div>
+            </div>
+
+            <div class="preset-row">
+                <button class="secondary-btn" onclick="applyPreset(2025, 'spring', 2025, 'summer', 'agent')">
+                    2025 spring → 2025 summer
+                </button>
+                <button class="secondary-btn" onclick="applyPreset(2024, 'spring', 2024, 'summer', 'agent')">
+                    2024 spring → 2024 summer
+                </button>
+            </div>
+
+            <div class="form-grid">
+                <div class="input-group">
+                    <label for="yearA">Season A</label>
+                    <div class="field-row">
+                        <input id="yearA" type="number" placeholder="2025" value="2025">
+                        <select id="seasonA">
+                            <option value="winter">winter (1)</option>
+                            <option value="spring" selected>spring (4)</option>
+                            <option value="summer">summer (7)</option>
+                            <option value="fall">fall (10)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="yearB">Season B</label>
+                    <div class="field-row">
+                        <input id="yearB" type="number" placeholder="2025" value="2025">
+                        <select id="seasonB">
+                            <option value="winter">winter (1)</option>
+                            <option value="spring">spring (4)</option>
+                            <option value="summer" selected>summer (7)</option>
+                            <option value="fall">fall (10)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="run-row">
+                <div class="input-group mode-group">
+                    <label for="mode">Mode</label>
+                    <select id="mode">
+                        <option value="deterministic">Deterministic</option>
+                        <option value="agent" selected>Agent</option>
+                    </select>
+                    <p class="mode-help">
+                        <strong>Deterministic</strong> = direct comparison baseline.
+                        <strong>Agent</strong> = specialist-agent report with critic check.
+                    </p>
+                </div>
+
+                <button id="runButton" class="primary-btn" onclick="runAnalysis()">Run Analysis</button>
+            </div>
         </section>
 
-        <section>
-            <h4>Critic</h4>
-            <div id="criticVerdict" class="critic-verdict muted">N/A</div>
-            <pre id="critic">N/A</pre>
+        <section class="glass-panel chat-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Ask a Bangumi DA question</h2>
+                    <p class="panel-subtitle">
+                        Ask in English about popularity, score, hypotheses, standout titles, or year-level season comparisons.
+                    </p>
+                </div>
+            </div>
+
+            <div class="question-builder">
+                <div class="question-builder-header">
+                    <div>
+                        <div class="builder-title">Quick question builder</div>
+                        <div class="builder-subtitle">
+                            Pick a year, optionally pick a season, then click a question template.
+                        </div>
+                    </div>
+
+                    <div class="builder-controls">
+                        <div class="builder-year-box">
+                            <label for="questionYear">Year</label>
+                            <input id="questionYear" type="number" value="2025" min="1900" max="2100">
+                        </div>
+                        <div class="builder-season-box">
+                            <label for="questionSeason">Season</label>
+                            <select id="questionSeason">
+                                <option value="winter">winter</option>
+                                <option value="spring" selected>spring</option>
+                                <option value="summer">summer</option>
+                                <option value="fall">fall</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="question-template-grid">
+                    <button class="template-card" onclick="submitTemplateQuestion('popularity')">
+                        <span id="templatePopularity">Which season was more popular in 2025?</span>
+                    </button>
+                    <button class="template-card" onclick="submitTemplateQuestion('score')">
+                        <span id="templateScore">Which season had the highest average score in 2025?</span>
+                    </button>
+                    <button class="template-card" onclick="submitTemplateQuestion('yearTopRated')">
+                        <span id="templateYearTopRated">What are the top rated anime in 2025?</span>
+                    </button>
+                    <button class="template-card" onclick="submitTemplateQuestion('yearMostPopular')">
+                        <span id="templateYearMostPopular">What are the most popular anime in 2025?</span>
+                    </button>
+                    <button class="template-card" onclick="submitTemplateQuestion('seasonTopRated')">
+                        <span id="templateSeasonTopRated">What are the top rated anime in spring 2025?</span>
+                    </button>
+                    <button class="template-card" onclick="submitTemplateQuestion('seasonMostPopular')">
+                        <span id="templateSeasonMostPopular">What are the most popular anime in spring 2025?</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="chatThread" class="chat-thread">
+                <div class="chat-message assistant-message">
+                    <div class="chat-role">Analyst Copilot</div>
+                    <div class="chat-bubble">
+                        Ask about a specific year like <strong>“Which season was more popular in 2011?”</strong>,
+                        a specific season like <strong>“What are the top rated anime in spring 2024?”</strong>,
+                        or the currently selected comparison above.
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-row">
+                <input
+                    id="chatInput"
+                    type="text"
+                    placeholder='Try: "Which season was more popular in 2011?"'
+                >
+                <button id="chatButton" class="primary-btn" onclick="submitChatQuestion()">Ask</button>
+            </div>
         </section>
 
-        <section>
-            <h4>Artifacts</h4>
-            <div id="artifacts"></div>
+        <section class="glass-panel info-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>How this works</h2>
+                    <p class="panel-subtitle">
+                        A compact analyst workflow rather than a generic chatbot.
+                    </p>
+                </div>
+            </div>
+
+            <div class="how-grid">
+                <article class="mini-card">
+                    <div class="mini-index">1</div>
+                    <h3>Collect</h3>
+                    <p>Retrieve seasonal cohorts from the official Bangumi API at runtime.</p>
+                </article>
+                <article class="mini-card">
+                    <div class="mini-index">2</div>
+                    <h3>Explore</h3>
+                    <p>Compute score, popularity, and gap-style comparison signals.</p>
+                </article>
+                <article class="mini-card">
+                    <div class="mini-index">3</div>
+                    <h3>Hypothesize</h3>
+                    <p>Produce an evidence-backed interpretation and optionally critique it.</p>
+                </article>
+            </div>
         </section>
-    </div>
+
+        <section class="glass-panel results-panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Analysis output</h2>
+                    <p class="panel-subtitle">
+                        Main report first, supporting details below.
+                    </p>
+                </div>
+            </div>
+
+            <div class="results-meta-row">
+                <div class="meta-pill">
+                    <span class="meta-label">Current pair</span>
+                    <span id="currentPair" class="meta-value">2025 spring vs 2025 summer</span>
+                </div>
+                <div class="meta-pill">
+                    <span class="meta-label">Current mode</span>
+                    <span id="currentMode" class="meta-value">Agent</span>
+                </div>
+            </div>
+
+            <section class="output-section">
+                <h3>Summary / Comparison</h3>
+                <pre id="summary">No result yet.</pre>
+
+                <details id="orchestratorDetails" class="secondary-block" hidden>
+                    <summary>Raw structured / orchestrator output</summary>
+                    <pre id="orchestratorOutput">N/A</pre>
+                </details>
+            </section>
+
+            <section class="output-section">
+                <h3>Hypothesis</h3>
+                <pre id="hypothesis">N/A</pre>
+            </section>
+
+            <section class="output-section">
+                <h3>Critic</h3>
+                <div id="criticVerdict" class="critic-verdict muted">N/A</div>
+                <pre id="critic">N/A</pre>
+            </section>
+
+            <section class="output-section">
+                <h3>Artifacts</h3>
+                <div id="artifacts"></div>
+            </section>
+        </section>
+    </main>
 
     <script src="/static/app.js"></script>
 </body>

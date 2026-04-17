@@ -27,22 +27,32 @@ def season_to_date_bounds(season_ref: SeasonRef) -> tuple[date, date]:
     season = season_ref.season
 
     if season == "winter":
-        return date(year, 1, 1), date(year, 4, 1)
+        return date(year - 1, 12, 1), date(year, 3, 1)
     if season == "spring":
-        return date(year, 4, 1), date(year, 7, 1)
+        return date(year, 3, 1), date(year, 6, 1)
     if season == "summer":
-        return date(year, 7, 1), date(year, 10, 1)
-    return date(year, 10, 1), date(year + 1, 1, 1)
+        return date(year, 6, 1), date(year, 9, 1)
+    return date(year, 9, 1), date(year, 12, 1)
 
+
+def season_to_month_windows(season_ref: SeasonRef) -> list[tuple[int, int]]:
+    year = season_ref.year
+    if season_ref.season == "winter":
+        return [(year - 1, 12), (year, 1), (year, 2)]
+    if season_ref.season == "spring":
+        return [(year, 3), (year, 4), (year, 5)]
+    if season_ref.season == "summer":
+        return [(year, 6), (year, 7), (year, 8)]
+    return [(year, 9), (year, 10), (year, 11)]
 
 def season_to_start_month(season_ref: SeasonRef) -> int:
-    if season_ref.season == "winter":
-        return 1
-    if season_ref.season == "spring":
-        return 4
-    if season_ref.season == "summer":
-        return 7
-    return 10
+    """Backward-compatible helper for older agent code paths.
+
+    Returns the anchor month for a season label while the actual retrieval logic
+    uses season_to_month_windows() for quarter-window expansion.
+    """
+    return {"winter": 1, "spring": 4, "summer": 7, "fall": 10}[season_ref.season]
+
 
 
 def _safe_float(value: Any) -> float | None:
@@ -61,6 +71,18 @@ def _safe_int(value: Any) -> int:
         return int(value)
     except (TypeError, ValueError):
         return 0
+
+
+def _safe_parse_date(value: Any) -> date | None:
+    if value is None:
+        return None
+    try:
+        text = str(value).strip()
+        if not text:
+            return None
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        return None
 
 
 def normalize_subject(raw: dict[str, Any], season_label: str) -> dict[str, Any] | None:
@@ -93,6 +115,12 @@ def normalize_subject(raw: dict[str, Any], season_label: str) -> dict[str, Any] 
         "subject_id": _safe_int(raw.get("id")),
         "name": (raw.get("name") or "").strip(),
         "name_cn": (raw.get("name_cn") or "").strip() or None,
+        "image_url": (
+            ((raw.get("images") or {}).get("common"))
+            or ((raw.get("images") or {}).get("large"))
+            or ((raw.get("images") or {}).get("medium"))
+            or ((raw.get("images") or {}).get("small"))
+        ),
         "season_label": season_label,
         "air_date": item_date,
         "score": score,
@@ -114,6 +142,7 @@ def rows_to_frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
                 "subject_id",
                 "name",
                 "name_cn",
+                "image_url",
                 "season_label",
                 "air_date",
                 "score",
@@ -169,6 +198,7 @@ def _record_from_row(row: pd.Series) -> GapRecord:
         subject_id=int(row["subject_id"]),
         name=str(row["name"]),
         name_cn=None if pd.isna(row.get("name_cn")) else str(row["name_cn"]),
+        image_url=None if pd.isna(row.get("image_url")) else str(row["image_url"]),
         season_label=str(row["season_label"]),
         air_date=None if pd.isna(row.get("air_date")) else str(row["air_date"]),
         score=float(row["score"]),
@@ -274,9 +304,7 @@ def _build_response_from_cohort_frames(
     summary_a = summarize_cohort(cohort_a, season_label=request.season_a.label, top_n=request.top_n)
     summary_b = summarize_cohort(cohort_b, season_label=request.season_b.label, top_n=request.top_n)
 
-    largest_gap_row = (
-        combined.iloc[combined["gap"].abs().idxmax()] if not combined.empty else None
-    )
+    largest_gap_row = combined.iloc[combined["gap"].abs().idxmax()] if not combined.empty else None
     largest_gap = _record_from_row(largest_gap_row) if largest_gap_row is not None else None
 
     comparison = ComparisonSummary(
@@ -352,24 +380,37 @@ async def _fetch_one_cohort(
     season_ref: SeasonRef,
     request: SeasonGapAnalysisRequest,
 ) -> pd.DataFrame:
-    month = season_to_start_month(season_ref)
-    raw_items = await client.fetch_season_subjects(
-        year=season_ref.year,
-        month=month,
-        page_limit=request.page_limit,
-        per_page=request.per_page,
-    )
+    start_date, end_date = season_to_date_bounds(season_ref)
+    month_windows = season_to_month_windows(season_ref)
 
-    rows: list[dict[str, Any]] = []
-    for item in raw_items:
-        normalized = normalize_subject(item, season_ref.label)
-        if normalized is None:
-            continue
-        if normalized["rating_total"] < request.min_rating_total:
-            continue
-        rows.append(normalized)
+    rows_by_subject: dict[int, dict[str, Any]] = {}
+    for browse_year, browse_month in month_windows:
+        raw_items = await client.fetch_season_subjects(
+            year=browse_year,
+            month=browse_month,
+            page_limit=request.page_limit,
+            per_page=request.per_page,
+        )
 
-    return pd.DataFrame(rows)
+        for item in raw_items:
+            normalized = normalize_subject(item, season_ref.label)
+            if normalized is None:
+                continue
+            if normalized["rating_total"] < request.min_rating_total:
+                continue
+
+            parsed_air_date = _safe_parse_date(normalized["air_date"])
+            if parsed_air_date is None:
+                continue
+            if not (start_date <= parsed_air_date < end_date):
+                continue
+
+            subject_id = int(normalized["subject_id"])
+            existing = rows_by_subject.get(subject_id)
+            if existing is None or int(normalized["rating_total"]) > int(existing["rating_total"]):
+                rows_by_subject[subject_id] = normalized
+
+    return pd.DataFrame(list(rows_by_subject.values()))
 
 
 async def run_season_gap_analysis(
