@@ -1,4 +1,4 @@
-# Bangumi Anime Reception Analyst
+# Bangumi.tv Anime Reception Analyst
 
 ## Live demo
 https://bangumi-data-analyst-agent-407136000438.us-central1.run.app
@@ -15,9 +15,9 @@ This project is a deployed **multi-agent data analyst system** for Bangumi.tv, a
 
 The frontend supports both structured seasonal comparison and a topic-limited Bangumi DA chat interface for follow-up questions.
 
-## Why Bangumi
+## Why Bangumi.tv
 
-Bangumi is a strong fit for this project because it is:
+Bangumi.tv is a strong fit for this project because it is:
 
 - a real community-driven anime rating platform
 - accessible through an official API
